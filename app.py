@@ -2,15 +2,16 @@ import os
 import random
 
 from flask import Flask, render_template
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, disconnect
 import threading
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager, login_user, logout_user, login_required
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from model.DbAccess import DBAccess
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!' # Change this in a real app!
-socketio = SocketIO(app)
+socketio = SocketIO(app, manage_session=True, cors_allowed_origins="*")  # Enable CORS for all origins
+app.secret_key = os.urandom(24)  # New key on each restart
 
 login_manager = LoginManager()
 login_manager.login_view = 'login'
@@ -26,8 +27,7 @@ def load_user(user_id):
     user = db.get_user_by_id(user_id)
     return user
 
-user_counter = 0
-counter_lock = threading.Lock()
+
 
 
 
@@ -53,6 +53,7 @@ def login():
         else:
             flash('Invalid username or password', 'error')
 
+
     return render_template('Index.html')
 
 
@@ -61,27 +62,37 @@ def login():
 def chat_index():
     return render_template('chat/Index.html') # create index.html
 
+
+
+#WebSocket events
+
+
+
+
 @socketio.on('connect')
 def handle_connect():
-    global user_counter
-    with counter_lock:
-        user_id = user_counter
-        user_counter += 1
-
-    print(f'Client connected with User ID: {user_id}')
-    emit('client_connected', {
-                                        'data': f'Connected! Your user ID is {user_id}',
-                                        'user_id': user_id})  # Send the user ID back to the client
+    print(f'[SocketIO] Authenticated? {current_user.is_authenticated}')
+    if current_user.is_authenticated:
+        print(f'[SocketIO] Connected user: {current_user.username}, ID: {current_user.id}')
+        emit('client_connected', {
+            'data': f'Connected! Your user ID is {current_user.id}',
+            'user_id': current_user.id,
+            'username': current_user.username
+        })
+    else:
+        print('[SocketIO] Unauthenticated user tried to connect.')
+        disconnect()
 
 @socketio.on('disconnect')
-def test_disconnect():
-    print('Client disconnected')
+def handle_disconnect():
+    print(f'User {current_user.get_id()} disconnected, logging out')
+    logout_user()
 
 
 @socketio.on('client_send_message')  # Define a custom event
 def handle_message(data):
     print('received message from client: ' + str(data))
-    emit('server_received_client_message', {'data': data['data'], 'user_id': data['userid']},broadcast=True)
+    emit('server_received_client_message', {'data': data['data'], 'user_id': data['userid'], 'username': data['username']},broadcast=True)
 
 
 

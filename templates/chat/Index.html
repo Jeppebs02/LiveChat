@@ -21,13 +21,16 @@
                 if (msg.user_id !== undefined) {
             document.getElementById('user-id').textContent = msg.user_id;
             }
+                if(msg.username !== undefined) {
+                    document.getElementById('username').textContent = msg.username;
+                }
         });
 
 
         socket.on('server_received_client_message', function(msg) {
             console.log("received message from server");
             console.log('Received message: ' + msg.data);
-            document.getElementById('log').innerHTML += '<br>' + msg.user_id + ': '+ msg.data;
+            document.getElementById('log').innerHTML += '<br>' + msg.username + ': '+ msg.data;
         });
 
         function sendMessage() {
@@ -35,9 +38,11 @@
 
             //parse the user ID as an integer in base 10 (decimal). That is why we put 10 at the end
             var userId = parseInt(document.getElementById('user-id').textContent,10);
+            var username = document.getElementById('username').textContent;
             socket.emit('client_send_message', {
                 data: message,
-                userid: userId // Send a message to the server
+                userid: userId,
+                username: username
             }); // Send a 'my event' to the server
             document.getElementById('message').value = '';
         }
@@ -48,6 +53,7 @@
 <body>
     <h1>Flask-SocketIO Example</h1>
 <p hidden>Your user ID: <span id="user-id"></span></p>
+<p hidden>Your username: <span id="username"></span></p>
     <br>
     <input type="text" id="message" placeholder="Enter message">
     <button onclick="sendMessage()">Send</button>
