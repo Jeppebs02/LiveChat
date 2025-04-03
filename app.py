@@ -14,7 +14,15 @@ counter_lock = threading.Lock()
 
 @app.route('/')
 def index():
-    return render_template('index.html') # create index.html
+    return render_template('/Index.html') # create index.html
+
+
+@app.route('/login')
+
+
+@app.route('/chat')
+def index():
+    return render_template('chat/Index.html') # create index.html
 
 @socketio.on('connect')
 def handle_connect():
