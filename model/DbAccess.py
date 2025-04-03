@@ -30,3 +30,20 @@ class DBAccess:
             conn.close()
 
         return None
+
+    def get_user_by_id(self, user_id):
+        conn = mysql.connector.connect(**self.config)
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT * FROM Users WHERE idUsers = %s", (user_id,))
+            row = cursor.fetchone()
+            if row:
+                return User(
+                    id=row['idUsers'],
+                    username=row['username'],
+                    password=row['password']
+                )
+        finally:
+            cursor.close()
+            conn.close()
+        return None
